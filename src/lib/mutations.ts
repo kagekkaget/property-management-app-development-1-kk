@@ -335,14 +335,22 @@ export async function applyOp(user: SessionUser, op: SyncOp): Promise<OpResult> 
     let customerId: number | null = null;
     if (typeof p.customerId === "number") {
       customerId = p.customerId;
-    } else if (typeof p.customerRef === "string") {
-      customerId = await resolveId(customers, p.customerRef);
+    } else if (typeof p.customerId === "string") {
+      const parsed = Number(p.customerId);
+      customerId = Number.isFinite(parsed) ? parsed : null;
+    }
+    if (customerId === null && typeof p.customerRef === "string") {
+      customerId = await resolveCustomer(op);
     }
     let propertyId: number | null = null;
     if (typeof p.propertyId === "number") {
       propertyId = p.propertyId;
-    } else if (typeof p.propertyRef === "string") {
-      propertyId = await resolveId(properties, p.propertyRef);
+    } else if (typeof p.propertyId === "string") {
+      const parsed = Number(p.propertyId);
+      propertyId = Number.isFinite(parsed) ? parsed : null;
+    }
+    if (propertyId === null && typeof p.propertyRef === "string") {
+      propertyId = await resolveProperty(op);
     }
     if (!customerId) return { ok: false, error: "Pelanggan belum dipilih" };
     if (!propertyId) return { ok: false, error: "Unit properti belum dipilih" };

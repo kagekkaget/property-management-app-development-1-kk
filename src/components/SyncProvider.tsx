@@ -219,11 +219,29 @@ function applyLocal(data: AppData, op: SyncOp): AppData {
 /* ------------------------------- Provider -------------------------------- */
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [stale, setStale] = useState(false);
-  const [online, setOnline] = useState(true);
-  const [pending, setPending] = useState(0);
+const [data, setData] = useState<AppData | null>(() => {
+  if (typeof window !== "undefined") {
+    return readCache();
+  }
+  return null;
+});
+const [loading, setLoading] = useState(() => {
+  if (typeof window !== "undefined") {
+    return readCache() === null;
+  }
+  return true;
+});
+const [stale, setStale] = useState(() => {
+  if (typeof window !== "undefined") {
+    return readCache() !== null;
+  }
+  return false;
+});
+const [online, setOnline] = useState(() => {
+  if (typeof navigator === "undefined") return true;
+  return navigator.onLine;
+});
+const [pending, setPending] = useState(() => readOutbox().length);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [toast, setToast] = useState<Ctx["toast"]>(null);
@@ -332,14 +350,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const cached = readCache();
-    if (cached) {
-      setData(cached);
-      setStale(true);
-      setLoading(false);
-    }
-    setOnline(typeof navigator === "undefined" ? true : navigator.onLine);
-    setPending(readOutbox().length);
-    void refresh(!cached);
+    requestAnimationFrame(() => {
+      void refresh(!cached);
+    });
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => undefined);
@@ -367,7 +380,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [notify, refresh, syncNow]);
 
   useEffect(() => {
-    if (online && pending > 0 && !syncing) void syncNow();
+    if (online && pending > 0 && !syncing) {
+      requestAnimationFrame(() => {
+        void syncNow();
+      });
+    }
   }, [online, pending, syncing, syncNow]);
 
   const value = useMemo<Ctx>(

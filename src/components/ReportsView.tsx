@@ -21,8 +21,8 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
 
 export function ReportsView() {
   const { data, notify } = useApp();
-  const today = new Date().toISOString().slice(0, 10);
-  const start = new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10);
+  const today = useState(() => new Date().toISOString().slice(0, 10))[0];
+  const start = useState(() => new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10))[0];
   const [tab, setTab] = useState<Tab>("inventaris");
   const [from, setFrom] = useState(start);
   const [to, setTo] = useState(today);
