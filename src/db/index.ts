@@ -7,6 +7,12 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL is required");
 }
 
+const url = new URL(databaseUrl);
+const sslParam = url.searchParams.get("sslmode");
+const sslConfig = sslParam === "require" || process.env.NODE_ENV === "production"
+  ? { rejectUnauthorized: false }
+  : false;
+
 const globalForDb = globalThis as typeof globalThis & {
   __arenaNextJsPostgresqlPool?: Pool;
 };
@@ -16,10 +22,20 @@ export const pool =
   new Pool({
     connectionString: databaseUrl,
     max: 1,
-    connectionTimeoutMillis: 10000,
-    idleTimeoutMillis: 20000,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 15000,
+    idleTimeoutMillis: 30000,
+    ssl: sslConfig,
   });
+
+export async function verifyConnection(): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query("SELECT 1");
+    return result.rowCount === 1;
+  } finally {
+    client.release();
+  }
+}
 
 if (process.env.NODE_ENV !== "production") {
   globalForDb.__arenaNextJsPostgresqlPool = pool;

@@ -40,7 +40,9 @@ export async function POST(request: Request) {
     return Response.json({
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
-  } catch {
-    return Response.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+  } catch (error) {
+    console.error("Login error:", error);
+    const message = error instanceof Error ? error.message : "Terjadi kesalahan pada server";
+    return Response.json({ error: `Terjadi kesalahan pada server: ${message}` }, { status: 500 });
   }
 }

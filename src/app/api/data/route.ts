@@ -45,7 +45,9 @@ export async function GET() {
       dashboard,
       fetchedAt: new Date().toISOString(),
     });
-  } catch {
-    return Response.json({ error: "Gagal memuat data" }, { status: 500 });
+  } catch (error) {
+    console.error("Data fetch error:", error);
+    const message = error instanceof Error ? error.message : "unknown";
+    return Response.json({ error: `Gagal memuat data: ${message}` }, { status: 500 });
   }
 }

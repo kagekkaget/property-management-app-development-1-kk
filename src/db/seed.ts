@@ -16,16 +16,32 @@ function ts(offsetDays: number): Date {
 }
 
 let seedPromise: Promise<void> | null = null;
+let seedRetryCount = 0;
+const MAX_SEED_RETRIES = 3;
 
 /** Menyiapkan data awal (idempoten) — dipanggil saat request pertama. */
 export async function ensureSeeded(): Promise<void> {
   if (!seedPromise) {
-    seedPromise = seed().catch((error) => {
+    seedPromise = seedWithRetry().catch((error) => {
       seedPromise = null;
       throw error;
     });
   }
   return seedPromise;
+}
+
+async function seedWithRetry(): Promise<void> {
+  for (let attempt = 1; attempt <= MAX_SEED_RETRIES; attempt++) {
+    try {
+      await seed();
+      return;
+    } catch (error) {
+      seedRetryCount++;
+      if (attempt >= MAX_SEED_RETRIES) throw error;
+      const delay = Math.min(1000 * 2 ** attempt, 5000);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
 }
 
 async function seed(): Promise<void> {
